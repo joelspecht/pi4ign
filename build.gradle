@@ -1,0 +1,104 @@
+import java.util.concurrent.TimeUnit
+
+buildscript {
+    ext.kotlin_version = '1.4.32'
+
+    repositories {
+        gradlePluginPortal()
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://nexus.inductiveautomation.com/repository/inductiveautomation-thirdparty/" }
+        maven { url "https://nexus.inductiveautomation.com/repository/inductiveautomation-releases/" }
+        maven { url "https://nexus.inductiveautomation.com/repository/inductiveautomation-snapshots/" }
+
+    }
+
+    ext.sdk_version = "8.1.2"
+
+    dependencies {
+        classpath("com.inductiveautomation.gradle:ignition-module-plugin:1.2.10-SNAPSHOT")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+    }
+}
+
+plugins {
+    id "base"
+}
+
+version "0.0.1-SNAPSHOT"
+group "com.joelspecht"
+
+allprojects {
+    apply plugin: "ignition-module-plugin"
+
+    ignitionModule {
+        // name of the .modl file to build
+        fileName "pi4ign"
+
+        // what is the name of the "root" gradle project for this module.  In this case, it"s "this", aka, the project
+        // specified as <repoPath>/perspective-component/build.gradle
+        moduleRoot "pi4ign"
+
+        // module xml configuration
+        moduleName "pi4ign"
+        moduleId "com.joelspecht.pi4ign"
+        moduleVersion "${project.version}"
+        moduleDescription "Adds support for Raspberry Pi"
+        requiredIgnitionVersion "8.1.0"
+        requiredFrameworkVersion "8"
+        isFree true
+        license "license.html"
+        moduleDependencies = [
+                [scope: "G", moduleId: "com.inductiveautomation.opcua"]
+        ]
+        // map our projects to the scopes their jars should apply
+        projectScopes = [
+                [name: "gateway", scope: "G"]
+        ]
+
+        hooks = [
+                [scope: "G", hookClass: "com.joelspecht.pi4ign.gateway.GatewayHook"]
+        ]
+
+    }
+
+    if (project.plugins.hasPlugin("java")) {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    // check for new versions of dependencies more frequently than default 24 hours.
+    configurations.all {
+        resolutionStrategy {
+            cacheChangingModulesFor(30, TimeUnit.SECONDS)
+        }
+    }
+
+    // where should we try to resolve maven artifacts from?
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        google()
+        maven {
+            name "oss-snapshots-repo"
+            url "https://oss.sonatype.org/content/groups/public"
+        }
+        maven { url "https://nexus.inductiveautomation.com/repository/inductiveautomation-releases/" }
+        maven { url "https://nexus.inductiveautomation.com/repository/inductiveautomation-thirdparty/" }
+        maven { url "https://nexus.inductiveautomation.com/repository/inductiveautomation-snapshots/" }
+    }
+}
+
+task deepClean() {
+    dependsOn allprojects.collect { "${it.path}:clean" }
+    description "Executes clean tasks and remove node plugin caches."
+    doLast {
+        delete(file(".gradle"))
+    }
+}
+
+/**
+ * Gradle wrapper configuration*/
+wrapper {
+    distributionUrl = "https://services.gradle.org/distributions/gradle-6.8.3-all.zip"
+}

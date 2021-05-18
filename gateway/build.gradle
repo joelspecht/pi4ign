@@ -1,0 +1,94 @@
+plugins {
+    id "kotlin"
+}
+
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+configurations {
+    localDeps
+}
+
+dependencies {
+    compile("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
+
+    compileOnly("com.inductiveautomation.ignitionsdk:ignition-common:${sdk_version}")
+    compileOnly("com.inductiveautomation.ignitionsdk:gateway-api:${sdk_version}")
+    compileOnly("com.inductiveautomation.ignitionsdk:driver-api:${sdk_version}")
+    compileOnly("com.inductiveautomation.ignition:ia-gson:2.8.5")
+
+    // TODO - change to the "official" version once core code uses TheadContext's class loader to load plugins
+    // see: https://github.com/Pi4J/pi4j-v2/issues/100
+    toModl(name: "pi4j-core-2.0-SNAPSHOT")
+
+    testCompile("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
+
+    testCompile("com.inductiveautomation.ignitionsdk:ignition-common:${sdk_version}")
+    testCompileOnly("com.inductiveautomation.ignitionsdk:gateway-api:${sdk_version}")
+    testCompileOnly("com.inductiveautomation.ignitionsdk:driver-api:${sdk_version}")
+    testCompileOnly("com.inductiveautomation.ignition:ia-gson:2.8.5")
+
+    testCompile(name: "pi4j-core-2.0-SNAPSHOT")
+    testCompile("com.pi4j:pi4j-plugin-mock:2.0-SNAPSHOT")
+
+    testImplementation('org.junit.jupiter:junit-jupiter-api:5.7.1')
+    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.7.1')
+
+    localDeps("com.pi4j:pi4j-plugin-mock:2.0-SNAPSHOT") {
+        exclude group: "com.pi4j", module: "pi4j-core"
+        exclude group: "org.slf4j"
+    }
+    localDeps("com.pi4j:pi4j-plugin-raspberrypi:2.0-SNAPSHOT") {
+        exclude group: "com.pi4j", module: "pi4j-core"
+        exclude group: "org.slf4j"
+    }
+    localDeps("com.pi4j:pi4j-plugin-pigpio:2.0-SNAPSHOT") {
+        exclude group: "com.pi4j", module: "pi4j-core"
+        exclude group: "org.slf4j"
+    }
+    compile configurations.localDeps
+}
+
+task copyToLib(type: Copy) {
+    from configurations.localDeps
+    into "$buildDir/lib"
+}
+
+jar {
+    into "lib", {
+        from "$buildDir/lib"
+    }
+}
+
+tasks.compileKotlin {
+    dependsOn(copyToLib)
+}
+
+compileKotlin {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+
+compileTestKotlin {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
